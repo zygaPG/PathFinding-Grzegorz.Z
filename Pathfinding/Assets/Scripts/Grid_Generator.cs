@@ -20,41 +20,50 @@ public class Grid_Generator : MonoBehaviour
     Color32 wallColor;
 
     [SerializeField]
-    Text x_grid_field;
+    Text XGridField;
     [SerializeField]
-    Text y_grid_field;
-
-    [SerializeField]
-    Transform arena;
+    Text YGridField;
 
     [SerializeField]
-    GameObject quad_pref;
+    Transform arenaParent;
+    [SerializeField]
+    GameObject arenaPrefab;
 
-    int grid_x_size;
-    int grid_y_size;
+    GameObject curretArena;
 
     [SerializeField]
-    int2 start_Position = new int2(-1, -1);
+    GameObject quadPrefab;
+
+    int gridWidth;
+    int gridHeight;
 
     [SerializeField]
-    int2 target_Position = new int2(-1, -1);
+    int2 startPosition = new int2(-1, -1);
 
-    int[] wallPositions_Encrypted;             // wall.x + wall.y * grid.x 
+    [SerializeField]
+    int2 targetPosition = new int2(-1, -1);
+
+    int[] wallId;             // wall.x + wall.y * grid.x 
 
     int2[] currentPath;
 
     public void Generate_Grid()
     {
-        foreach (Transform child in arena)
+        if(curretArena)
+        Destroy(curretArena.gameObject);
+
+        curretArena = Instantiate(arenaPrefab, arenaParent);
+
+        if(curretArena == null)
         {
-            Destroy(child.gameObject);
+            return;
         }
 
-        start_Position.x = -1;
-        target_Position.x = -1;
+        startPosition.x = -1;
+        targetPosition.x = -1;
 
-        grid_x_size = int.Parse(x_grid_field.text);
-        grid_y_size = int.Parse(y_grid_field.text);
+        gridWidth = int.Parse(XGridField.text);
+        gridHeight = int.Parse(YGridField.text);
 
 
         float xSize;
@@ -62,27 +71,27 @@ public class Grid_Generator : MonoBehaviour
 
         float size;
 
-        xSize = Screen.width / grid_x_size;
-        ySize = Screen.height / grid_y_size;
+        xSize = Screen.width / gridWidth;
+        ySize = Screen.height / gridHeight;
 
         if (xSize < ySize)
         {
-            arena.GetComponent<RectTransform>().sizeDelta = new Vector2(xSize * grid_x_size, xSize * grid_y_size);
+            curretArena.GetComponent<RectTransform>().sizeDelta = new Vector2(xSize * gridWidth, xSize * gridHeight);
             size = xSize;
         }
         else
         {
-            arena.GetComponent<RectTransform>().sizeDelta = new Vector2(ySize * grid_x_size, ySize * grid_y_size);
+            curretArena.GetComponent<RectTransform>().sizeDelta = new Vector2(ySize * gridWidth, ySize * gridHeight);
             size = ySize;
         }
 
 
 
-        for (int x = 0; x < grid_x_size; x++)
+        for (int x = 0; x < gridWidth; x++)
         {
-            for (int y = 0; y < grid_y_size; y++)
+            for (int y = 0; y < gridHeight; y++)
             {
-                RectTransform tr = Instantiate(quad_pref, arena).GetComponent<RectTransform>();
+                RectTransform tr = Instantiate(quadPrefab, curretArena.transform).GetComponent<RectTransform>();
                 tr.sizeDelta = new Vector2(size, size);
                 tr.anchoredPosition = new Vector3(  (size / 2) + (x * size), 
                                                     -((size / 2) + (y * size)), 
@@ -95,14 +104,17 @@ public class Grid_Generator : MonoBehaviour
         }
 
 
-
-        List<int> new_Walls = WallGenerator(new int2(grid_x_size, grid_y_size));
-        foreach (int wallPos in new_Walls)
+        
+        List<int> new_Walls = WallGenerator(new int2(gridWidth, gridHeight));
+        foreach (int wallidentity in new_Walls)
         {
-            Debug.Log(wallPos.x + " " + wallPos.y);
-            SetButtonCollor(wallPos, wallColor);
+            Debug.Log(wallidentity);
+            SetButtonCollor(wallidentity, wallColor);
         }
-        wallPositions_Encrypted = new_Walls.ToArray();
+        wallId = null;
+        wallId = new_Walls.ToArray();
+        
+
 
     }
 
@@ -112,24 +124,28 @@ public class Grid_Generator : MonoBehaviour
 
     public void ButtonClick(string buttonName)        //
     {
-        if (start_Position.x == -1)
+        if (startPosition.x == -1)
         {
-            start_Position = StrigToInt2(buttonName);
-            SetButtonCollor(start_Position, startColor);
+            startPosition = StrigToInt2(buttonName);
+            SetButtonCollor(startPosition, startColor);
+            curretArena.transform.GetChild(GenerateId(startPosition)).GetChild(0).GetComponent<Text>().text = "x" + startPosition.x + " y" + startPosition.y;
         }
         else
         {
-            if (target_Position.x != -1 && currentPath != null)
+            if (targetPosition.x != -1 && currentPath != null)
             {
                 foreach (int2 quadPosition in currentPath)
                 {
                     SetButtonCollor(quadPosition, new Color32(255, 255, 255, 255));
+                    curretArena.transform.GetChild( GenerateId(quadPosition)    ).GetChild(0).GetComponent<Text>().text = "";
                 }
-                SetButtonCollor(target_Position, new Color32(255, 255, 255, 255));
+                SetButtonCollor(targetPosition, new Color32(255, 255, 255, 255));
+                curretArena.transform.GetChild( GenerateId(targetPosition)  ).GetChild(0).GetComponent<Text>().text = "";
             }
 
-            target_Position = StrigToInt2(buttonName);
-            SetButtonCollor(target_Position, targetColor);
+            targetPosition = StrigToInt2(buttonName);
+            SetButtonCollor(targetPosition, targetColor);
+            curretArena.transform.GetChild(GenerateId(targetPosition)).GetChild(0).GetComponent<Text>().text = "x" + targetPosition.x + " y" + targetPosition.y;
 
             StartPathFinding();
 
@@ -151,18 +167,20 @@ public class Grid_Generator : MonoBehaviour
 
     void SetButtonCollor(int2 position, Color32 color)
     {
-        //int quad_num = ((position.x) * grid_y_size) + position.y + 1;
-        int quad_num = position.x * grid_y_size + position.y;
-        arena.transform.GetChild(quad_num ).GetComponent<Image>().color = color;
+        curretArena.transform.GetChild(GenerateId(position)).GetComponent<Image>().color = color;
     }
 
-    void SetButtonCollor(int position, Color32 color)
+    void SetButtonCollor(int positionId, Color32 color)
     {
-        arena.transform.GetChild(position).GetComponent<Image>().color = color;
-
+        curretArena.transform.GetChild(positionId).GetComponent<Image>().color = color;
     }
 
 
+    void ShowPathElement(int2 elementPosition, int fCost)
+    {
+        SetButtonCollor(elementPosition, pathColor);
+        curretArena.transform.GetChild(GenerateId(elementPosition)).transform.GetChild(0).GetComponent<Text>().text = "x" + elementPosition.x + " y" + elementPosition.y + " f" + fCost;
+    }
 
     //-------------------------------------------------------------------------------------
 
@@ -170,27 +188,28 @@ public class Grid_Generator : MonoBehaviour
     {
         PathFindJob pathFindJob = new PathFindJob
         {
-            grid_x = grid_x_size,
-            grid_y = grid_y_size,
-            startPosition = start_Position,
-            targetPosition = target_Position,
-            wall = new NativeArray<int>(wallPositions_Encrypted.Length, Allocator.TempJob)
+            grid_x = gridWidth,
+            grid_y = gridHeight,
+            startPosition = startPosition,
+            targetPosition = targetPosition,
+            wall = new NativeArray<int>(wallId.Length, Allocator.TempJob)
 
         };
-        pathFindJob.wall.CopyFrom(wallPositions_Encrypted);
+        pathFindJob.wall.CopyFrom(wallId);
 
         pathFindJob.Execute();
-        
+        pathFindJob.wall.Dispose();
 
+        int dystansToStart = pathFindJob.path.Length+1;
         foreach (int2 quadPosition in pathFindJob.path)
         {
-            SetButtonCollor(quadPosition, pathColor);
-
+            dystansToStart--;
+            ShowPathElement(quadPosition, dystansToStart);
         }
 
         currentPath = pathFindJob.path.ToArray();
 
-        pathFindJob.wall.Dispose();
+        
         pathFindJob.path.Dispose();
 
     }
@@ -278,6 +297,9 @@ public class Grid_Generator : MonoBehaviour
 
                 if (currentQuadId == targetQuadId)      //finish!!!!
                 {
+                    
+
+
                     break;
                 }
 
@@ -345,6 +367,7 @@ public class Grid_Generator : MonoBehaviour
                 // found
                 path = ShowPath(quadsArray, endQuad);
             }
+
             path.RemoveAt(0);
             path.RemoveAt(path.Length - 1);
 
@@ -358,6 +381,8 @@ public class Grid_Generator : MonoBehaviour
 
 
 
+
+
         bool ValidPosition(int2 pos)
         {
             return
@@ -367,7 +392,7 @@ public class Grid_Generator : MonoBehaviour
 
         int Calculate_id(int x, int y)
         {
-            return x + y * grid_x;
+            return (x * grid_y) + y ;
         }
 
         NativeList<int2> ShowPath(NativeArray<Quad> quadArray, Quad endQuad)
@@ -379,7 +404,7 @@ public class Grid_Generator : MonoBehaviour
             else
             {
                 NativeList<int2> path = new NativeList<int2>(Allocator.Temp);
-                path.Add(new int2(endQuad.x, endQuad.y));
+                path.Add(new int2());
 
                 Quad currQuad = endQuad;
 
@@ -402,6 +427,7 @@ public class Grid_Generator : MonoBehaviour
         int GetLowestF(NativeList<int> _openList, NativeArray<Quad> _quadArray)
         {
             Quad lowestQuad = _quadArray[_openList[0]];
+
             for (int i = 1; i < _openList.Length; i++)
             {
                 Quad testQuad = _quadArray[_openList[i]];
@@ -425,23 +451,17 @@ public class Grid_Generator : MonoBehaviour
 
 
 
-
-
-
-
-
-
-
-
-
     public List<int> WallGenerator(int2 grid_size){
 
         int wallMaxCout = (grid_size.x * grid_size.y) / 10;
 
         int firstGen = wallMaxCout / 5;   // 20% of max 
 
+        
+
+
         List<int2> wall = new List<int2>();
-        List<int> wallEncrypted = new List<int>(); 
+        List<int> wallid = new List<int>(); 
 
         for(int i=0; i<= firstGen; i++)
         {
@@ -449,87 +469,125 @@ public class Grid_Generator : MonoBehaviour
                 UnityEngine.Random.Range(0, grid_size.x-1), 
                 UnityEngine.Random.Range(0, grid_size.y-1)    );
 
-            int new_Wall_Encrypted = newWall.x + newWall.y * grid_size.x;
+            int new_Wall_Encrypted = GenerateId(newWall);
 
-            if (!wallEncrypted.Exists(x => x == new_Wall_Encrypted))
+            if (!wallid.Exists(x => x == new_Wall_Encrypted))
             {
-                wallEncrypted.Add(new_Wall_Encrypted);              //  x + y * grid.x
+                wallid.Add(new_Wall_Encrypted);              //  x * grid.y + y 
                 wall.Add(newWall);
             }
             else
             {
-                //if(i>0)
-                //i--;
+                i--;
             }
         }
+
+
 
         if(wall.Count == 0)
         {
             int2 newWall = new int2(
-                UnityEngine.Random.Range(0, grid_size.x),
-                UnityEngine.Random.Range(0, grid_size.y));
+                UnityEngine.Random.Range(0, grid_size.x-1),
+                UnityEngine.Random.Range(0, grid_size.y-1));
 
-            int new_Wall_Encrypted = newWall.x + newWall.y * grid_size.x;
+            int new_Wall_Encrypted = GenerateId(newWall);
 
-            wallEncrypted.Add(new_Wall_Encrypted);              //  x + y * grid.x
+            wallid.Add(new_Wall_Encrypted);              //   x * grid.y + y 
             wall.Add(newWall);
         }
 
-        
-        int lastWallLengt = wall.Count;
 
         for (int i=0; i< wall.Count; i++)
         {
-            if(wallEncrypted.Count < wallMaxCout)
+            if(wallid.Count < wallMaxCout)
             {
                 int2 currentWall = wall[i];
 
                 for(int o=0; o< firstGen; o++)
                 {
+                    int wallAround = 0;
 
                     for(int p=0; p < firstGen; p++){
 
-                        int2 new_Way = new int2(UnityEngine.Random.Range(-1, 1), UnityEngine.Random.Range(-1, 1));
-                        currentWall += new_Way;
-
-                        if (currentWall.x <= 0 && currentWall.x >= grid_size.x && currentWall.y <= 0 && currentWall.y >= grid_size.y)
+                        int2 new_Way;
+                        if (UnityEngine.Random.Range(0, 2) > 0)
                         {
-                            if (p > 0)
+                            new_Way = new int2(UnityEngine.Random.Range(-1, 1),     0);
+                            if(new_Way.x == 0)
+                            {
                                 p--;
-                            currentWall -= new_Way;
+                                continue;
+                            }
+                        }
+                        else
+                        {
+                            new_Way = new int2(0,   UnityEngine.Random.Range(-1, 1));
+                            if (new_Way.y == 0)
+                            {
+                                p--;
+                                continue;
+                            }
+                        }
+
+
+
+                        int2 newWall = currentWall + new_Way;
+                        //currentWall += new_Way;
+
+                        if (newWall.x < 0 && newWall.x >= grid_size.x && newWall.y < 0 && newWall.y >= grid_size.y)
+                        {
+                            p--;
+                            //currentWall -= new_Way;
                             continue;
                         }
 
-                        int currentWall_Encrypted = currentWall.x + currentWall.y * grid_size.x;
+                        int currentWallid = GenerateId(newWall);
 
-                        if (wallEncrypted.Exists(x => x == currentWall_Encrypted))
+                        if (currentWallid < 0)
                         {
-                            if (p > 0)
-                                p--;
+                            wallAround++;
+                            if (wallAround > 8)
+                            {
+                                break;
+                            }
+                            p--;
+                            //currentWall -= new_Way;
                             continue;
                         }
 
-                        wallEncrypted.Add(currentWall_Encrypted);
+                        if (wallid.Exists(x => x == currentWallid))
+                        {
+                            wallAround++;
+                            if (wallAround > 8)
+                            {
+                                break;
+                            }
 
+                            p--;
+                            //currentWall -= new_Way;
+                            continue;
+                        }
+
+                        currentWall = newWall;
+
+
+                        wallid.Add(currentWallid);
 
                     }
-
-
-
                 }
-
-
             }
-
-
         }
         
    
 
-        return wallEncrypted;
+        return wallid;
     }
 
 
+    int GenerateId(int2 position)
+    {
+        return (position.x * gridHeight) + position.y;
+    }
 
 
     public struct Quad
