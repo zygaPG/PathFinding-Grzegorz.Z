@@ -78,15 +78,18 @@ public class Grid_Generator : MonoBehaviour
 
 
 
-        for (int i = 0; i < grid_x_size; i++)
+        for (int x = 0; x < grid_x_size; x++)
         {
-            for (int o = 0; o < grid_y_size; o++)
+            for (int y = 0; y < grid_y_size; y++)
             {
                 RectTransform tr = Instantiate(quad_pref, arena).GetComponent<RectTransform>();
                 tr.sizeDelta = new Vector2(size, size);
-                tr.anchoredPosition = new Vector3((size / 2) + (i * size), -((size / 2) + (o * size)), 0);
-                tr.transform.name = o + 1 + "v" + (i + 1);
-                tr.gameObject.GetComponent<Button>().onClick.AddListener(() => ButtonDown(tr.transform.name));
+                tr.anchoredPosition = new Vector3(  (size / 2) + (x * size), 
+                                                    -((size / 2) + (y * size)), 
+                                                 0);
+                
+                tr.transform.name = (x + 1) + "v" + (y + 1);
+                tr.GetComponent<Button>().onClick.AddListener(() => ButtonClick(tr.transform.name));
 
             }
         }
@@ -103,11 +106,11 @@ public class Grid_Generator : MonoBehaviour
     }
 
 
-    public void ButtonDown(string _name)        //
+    public void ButtonClick(string buttonName)        //
     {
         if (start_Position.x == -1)
         {
-            start_Position = Decrypt_Button(_name);
+            start_Position = Decrypt_Button(buttonName);
             SetButtonCollor(start_Position, startColor);
         }
         else
@@ -121,7 +124,7 @@ public class Grid_Generator : MonoBehaviour
                 SetButtonCollor(target_Position, new Color32(255, 255, 255, 255));
             }
 
-            target_Position = Decrypt_Button(_name);
+            target_Position = Decrypt_Button(buttonName);
             SetButtonCollor(target_Position, targetColor);
 
             StartPathFinding();
@@ -129,38 +132,18 @@ public class Grid_Generator : MonoBehaviour
 
         }
     }
-
+    
     public int2 Decrypt_Button(string _name)    //decrypting button name string "3v15" to int2 {3,15}
     {
-        bool v_exist = false;
-        string xx = "";
-        string yy = "";
+        string[] splitArray =  _name.Split('v');
 
-        for (int i = 0; i < _name.Length; i++)
-        {
-            if (_name[i].ToString() == "v")
-            {
-                v_exist = true;
-                continue;
-            }
-
-            if (!v_exist)
-            {
-                xx += _name[i].ToString();
-            }
-            else
-            {
-                yy += _name[i].ToString();
-            }
-        }
-
-        int2 retPosition = new int2();
-        retPosition.x = int.Parse(xx) - 1;
-        retPosition.y = int.Parse(yy) - 1;
-
+        int2 retPosition = new int2(
+            int.Parse(splitArray[0]) - 1, 
+            int.Parse(splitArray[1]) - 1);
+       
         return retPosition;
     }
-
+    
 
     void SetButtonCollor(int2 position, Color32 colo)
     {
