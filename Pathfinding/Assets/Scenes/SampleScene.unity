@@ -135,7 +135,7 @@ GameObject:
   - component: {fileID: 72061605}
   - component: {fileID: 72061604}
   m_Layer: 5
-  m_Name: Text
+  m_Name: Text field y
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -243,11 +243,11 @@ MonoBehaviour:
   wallColor:
     serializedVersion: 2
     rgba: 4281348144
-  XGridField: {fileID: 1496287845}
-  YGridField: {fileID: 72061604}
+  XAreaTextField: {fileID: 1496287845}
+  YAreaTextField: {fileID: 72061604}
   arenaParent: {fileID: 1614668404}
   arenaPrefab: {fileID: 2622344686051070701, guid: 13c4856c1e78de347806ef8b0c4a3020, type: 3}
-  quadPrefab: {fileID: 3782758369088200539, guid: 0fabe47272a21284191ae272611f378f, type: 3}
+  buttonPrefab: {fileID: 3782758369088200539, guid: 0fabe47272a21284191ae272611f378f, type: 3}
   startPosition:
     x: -1
     y: -1
@@ -1163,7 +1163,7 @@ GameObject:
   - component: {fileID: 1496287846}
   - component: {fileID: 1496287845}
   m_Layer: 5
-  m_Name: Text
+  m_Name: Text field x
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

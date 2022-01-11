@@ -20,9 +20,9 @@ public class Grid_Generator : MonoBehaviour
     Color32 wallColor;
 
     [SerializeField]
-    Text XGridField;
+    Text XAreaTextField;
     [SerializeField]
-    Text YGridField;
+    Text YAreaTextField;
 
     [SerializeField]
     Transform arenaParent;
@@ -32,10 +32,10 @@ public class Grid_Generator : MonoBehaviour
     GameObject curretArena;
 
     [SerializeField]
-    GameObject quadPrefab;
+    GameObject buttonPrefab;
 
-    int gridWidth;
-    int gridHeight;
+    int arenaWidth;
+    int arenaHeight;
 
     [SerializeField]
     int2 startPosition = new int2(-1, -1);
@@ -43,7 +43,7 @@ public class Grid_Generator : MonoBehaviour
     [SerializeField]
     int2 targetPosition = new int2(-1, -1);
 
-    int[] wallId;             // wall.x + wall.y * grid.x 
+    int[] wallIdentity;             // wall.x + wall.y * grid.x 
 
     int2[] currentPath;
 
@@ -62,8 +62,8 @@ public class Grid_Generator : MonoBehaviour
         startPosition.x = -1;
         targetPosition.x = -1;
 
-        gridWidth = int.Parse(XGridField.text);
-        gridHeight = int.Parse(YGridField.text);
+        arenaWidth   = int.Parse(XAreaTextField.text);
+        arenaHeight = int.Parse(YAreaTextField.text);
 
 
         float xSize;
@@ -71,48 +71,48 @@ public class Grid_Generator : MonoBehaviour
 
         float size;
 
-        xSize = Screen.width / gridWidth;
-        ySize = Screen.height / gridHeight;
+        xSize = Screen.width / arenaWidth;
+        ySize = Screen.height / arenaHeight;
 
         if (xSize < ySize)
         {
-            curretArena.GetComponent<RectTransform>().sizeDelta = new Vector2(xSize * gridWidth, xSize * gridHeight);
+            curretArena.GetComponent<RectTransform>().sizeDelta = new Vector2(xSize * arenaWidth,     xSize * arenaHeight);
             size = xSize;
         }
         else
         {
-            curretArena.GetComponent<RectTransform>().sizeDelta = new Vector2(ySize * gridWidth, ySize * gridHeight);
+            curretArena.GetComponent<RectTransform>().sizeDelta = new Vector2(ySize * arenaWidth,     ySize * arenaHeight);
             size = ySize;
         }
 
 
 
-        for (int x = 0; x < gridWidth; x++)
+        for (int x = 0; x < arenaWidth; x++)
         {
-            for (int y = 0; y < gridHeight; y++)
+            for (int y = 0; y < arenaHeight; y++)
             {
-                RectTransform tr = Instantiate(quadPrefab, curretArena.transform).GetComponent<RectTransform>();
+                RectTransform tr = Instantiate(buttonPrefab, curretArena.transform).GetComponent<RectTransform>();
+
                 tr.sizeDelta = new Vector2(size, size);
                 tr.anchoredPosition = new Vector3(  (size / 2) + (x * size), 
                                                     -((size / 2) + (y * size)), 
-                                                 0);
-                
+                                                                                 0);
+
                 tr.transform.name = (x + 1) + "v" + (y + 1);
                 tr.GetComponent<Button>().onClick.AddListener(() => ButtonClick(tr.transform.name));
-
             }
         }
 
 
         
-        List<int> new_Walls = WallGenerator(new int2(gridWidth, gridHeight));
+        List<int> new_Walls = WallGenerator(new int2(arenaWidth, arenaHeight));
         foreach (int wallidentity in new_Walls)
         {
             Debug.Log(wallidentity);
             SetButtonCollor(wallidentity, wallColor);
         }
-        wallId = null;
-        wallId = new_Walls.ToArray();
+        wallIdentity = null;
+        wallIdentity = new_Walls.ToArray();
         
 
 
@@ -122,7 +122,10 @@ public class Grid_Generator : MonoBehaviour
 
 
 
-    public void ButtonClick(string buttonName)        //
+
+
+
+    public void ButtonClick(string buttonName)        
     {
         if (startPosition.x == -1)
         {
@@ -153,6 +156,10 @@ public class Grid_Generator : MonoBehaviour
         }
     }
     
+
+    //---------------------------------------------------------------------------------------------------------------------------------
+
+
     public int2 StrigToInt2(string _name)    //split string "3v15" to int2 {3,15}
     {
         string[] splitArray =  _name.Split('v');
@@ -163,41 +170,48 @@ public class Grid_Generator : MonoBehaviour
        
         return retPosition;
     }
-    
 
-    void SetButtonCollor(int2 position, Color32 color)
+    void SetButtonCollor(int2 buttonPosition, Color32 color)
     {
-        curretArena.transform.GetChild(GenerateId(position)).GetComponent<Image>().color = color;
+        curretArena.transform.GetChild( GenerateId(buttonPosition)    ).GetComponent<Image>().color = color;
     }
 
     void SetButtonCollor(int positionId, Color32 color)
     {
-        curretArena.transform.GetChild(positionId).GetComponent<Image>().color = color;
+        curretArena.transform.GetChild( positionId  ).GetComponent<Image>().color = color;
     }
 
 
     void ShowPathElement(int2 elementPosition, int fCost)
     {
         SetButtonCollor(elementPosition, pathColor);
-        curretArena.transform.GetChild(GenerateId(elementPosition)).transform.GetChild(0).GetComponent<Text>().text = "x" + elementPosition.x + " y" + elementPosition.y + " f" + fCost;
+        curretArena.transform.GetChild( GenerateId(elementPosition)     ).transform.GetChild(0).GetComponent<Text>().text = "x" + elementPosition.x + " y" + elementPosition.y + " f" + fCost;
     }
 
-    //-------------------------------------------------------------------------------------
+    int GenerateId(int2 position)
+    {
+        return (position.x * arenaHeight) + position.y;
+    }
+
+
+    //---------------------------------------------------------------------------------------------------------------------------------
 
     void StartPathFinding()
     {
         PathFindJob pathFindJob = new PathFindJob
         {
-            grid_x = gridWidth,
-            grid_y = gridHeight,
+            gridSizeX = arenaWidth,
+            gridSizeY = arenaHeight,
             startPosition = startPosition,
             targetPosition = targetPosition,
-            wall = new NativeArray<int>(wallId.Length, Allocator.TempJob)
+            wall = new NativeArray<int>(wallIdentity.Length, Allocator.TempJob)
 
         };
-        pathFindJob.wall.CopyFrom(wallId);
+
+        pathFindJob.wall.CopyFrom(wallIdentity);
 
         pathFindJob.Execute();
+
         pathFindJob.wall.Dispose();
 
         int dystansToStart = pathFindJob.path.Length+1;
@@ -207,7 +221,7 @@ public class Grid_Generator : MonoBehaviour
             ShowPathElement(quadPosition, dystansToStart);
         }
 
-        currentPath = pathFindJob.path.ToArray();
+        currentPath = pathFindJob.path.ToArray();           // for clear path elements when you need another path on the same arena
 
         
         pathFindJob.path.Dispose();
@@ -219,8 +233,8 @@ public class Grid_Generator : MonoBehaviour
     [BurstCompatible]
     struct PathFindJob : IJob
     {
-        public int grid_x;
-        public int grid_y;
+        public int gridSizeX;
+        public int gridSizeY;
 
         public int2 startPosition;
         public int2 targetPosition;
@@ -230,36 +244,35 @@ public class Grid_Generator : MonoBehaviour
 
         public void Execute()
         {
-            NativeArray<Quad> quadsArray = new NativeArray<Quad>(grid_x * grid_y, Allocator.Temp);
+            //      Quad - sigle element on grid 
 
-            for (int x = 0; x < grid_x; x++)
+            NativeArray<Quad> quadsArray = new NativeArray<Quad>(gridSizeX * gridSizeY, Allocator.Temp);
+
+            for (int x = 0; x < gridSizeX; x++)
             {
-                for (int y = 0; y < grid_y; y++)
+                for (int y = 0; y < gridSizeY; y++)
                 {
                     Quad quad = new Quad();
                     quad.x = x;
                     quad.y = y;
                     quad.id = Calculate_id(x, y);
 
-                    quad.gValue = int.MaxValue;
-                    quad.hValue = Calculate_gValue(x, y);
-                    quad.Set_fValue();
+                    quad.gCost = int.MaxValue;
+                    quad.hCost = Calculate_hCost(x, y);
+                    quad.CalculatefCost();
 
                     quad.open = true;
-
                     quad.owner_id = -1;
-
-                    
 
                     quadsArray[quad.id] = quad;
                 }
             }
 
-            foreach(int wal_Id in wall)                   // set quad.open = true  on wall positions
+            foreach(int wallIndex in wall)                   // set quad.open = true  on wall positions
             {
-                Quad currentQuad =  quadsArray[wal_Id];
+                Quad currentQuad =  quadsArray[wallIndex];
                 currentQuad.open = false;
-                quadsArray[wal_Id] = currentQuad;
+                quadsArray[wallIndex] = currentQuad;
             }
             
 
@@ -273,22 +286,20 @@ public class Grid_Generator : MonoBehaviour
             offsetArray[6] = new int2(1, -1); //right down
             offsetArray[7] = new int2(1, 1); //rigt up
 
-
-
-
             int targetQuadId = Calculate_id(targetPosition.x, targetPosition.y);
 
 
             Quad startQuad = quadsArray[Calculate_id(startPosition.x, startPosition.y)];
-            startQuad.gValue = 0;
-            startQuad.Set_fValue();
+            startQuad.gCost = 0;
+            startQuad.CalculatefCost();
             quadsArray[startQuad.id] = startQuad;
-
 
             NativeList<int> openList = new NativeList<int>(Allocator.Temp);
             NativeList<int> closedList = new NativeList<int>(Allocator.Temp);
 
             openList.Add(startQuad.id);
+
+
 
             while (openList.Length > 0)
             {
@@ -297,9 +308,6 @@ public class Grid_Generator : MonoBehaviour
 
                 if (currentQuadId == targetQuadId)      //finish!!!!
                 {
-                    
-
-
                     break;
                 }
 
@@ -332,12 +340,12 @@ public class Grid_Generator : MonoBehaviour
                     if (!newQuad.open)                      //its a wall
                         continue;
 
-                    int newG_Value = newQuad.gValue + (i > 3 ? 14 : 10); // slant + 14, normal +10
-                    if (newG_Value < newQuad.gValue)
+                    int newG_Value = newQuad.gCost + (i > 3 ? 14 : 10); // slant + 14, normal +10
+                    if (newG_Value < newQuad.gCost)
                     {
                         newQuad.owner_id = currentQuadId;
-                        newQuad.gValue = newG_Value;
-                        newQuad.Set_fValue();
+                        newQuad.gCost = newG_Value;
+                        newQuad.CalculatefCost();
                         quadsArray[newId] = newQuad;
 
                         if (!openList.Contains(newQuad.id))
@@ -351,27 +359,22 @@ public class Grid_Generator : MonoBehaviour
             }
 
 
-
-
-
-
             Quad endQuad = quadsArray[targetQuadId];
 
-            if (endQuad.owner_id == -1)
+
+            if (endQuad.owner_id == -1)     // dont find path
             {
-                // dont find path
                 Debug.Log("cat find path");
             }
-            else
+            else                            // found
             {
-                // found
                 path = ShowPath(quadsArray, endQuad);
             }
+
 
             path.RemoveAt(0);
             path.RemoveAt(path.Length - 1);
 
-            //path.Dispose();
             quadsArray.Dispose();
             offsetArray.Dispose();
             openList.Dispose();
@@ -381,18 +384,16 @@ public class Grid_Generator : MonoBehaviour
 
 
 
-
-
         bool ValidPosition(int2 pos)
         {
             return
-                pos.x >= 0 && pos.x <= grid_x &&
-                pos.y >= 0 && pos.y <= grid_y;
+                pos.x >= 0 && pos.x <= gridSizeX &&
+                pos.y >= 0 && pos.y <= gridSizeY;
         }
 
         int Calculate_id(int x, int y)
         {
-            return (x * grid_y) + y ;
+            return (x * gridSizeY) + y ;
         }
 
         NativeList<int2> ShowPath(NativeArray<Quad> quadArray, Quad endQuad)
@@ -431,16 +432,16 @@ public class Grid_Generator : MonoBehaviour
             for (int i = 1; i < _openList.Length; i++)
             {
                 Quad testQuad = _quadArray[_openList[i]];
-                if (testQuad.fValue < lowestQuad.fValue)
+                if (testQuad.fCost < lowestQuad.fCost)
                 {
                     lowestQuad = testQuad;
                 }
             }
-
+            Debug.Log(lowestQuad.fCost);
             return lowestQuad.id;
         }
 
-        int Calculate_gValue(int xPos, int yPos)
+        int Calculate_hCost(int xPos, int yPos)
         {
             int dystX = Mathf.Abs(xPos - targetPosition.x);
             int dystY = Mathf.Abs(yPos - targetPosition.y);
@@ -584,10 +585,7 @@ public class Grid_Generator : MonoBehaviour
     }
 
 
-    int GenerateId(int2 position)
-    {
-        return (position.x * gridHeight) + position.y;
-    }
+    
 
 
     public struct Quad
@@ -598,15 +596,16 @@ public class Grid_Generator : MonoBehaviour
         public int id;
         public int owner_id;
 
-        public int gValue; // this -> owner
-        public int fValue; // g + h
-        public int hValue; // this -> target
+        public int gCost; // this -> owner
+        public int hCost; // this -> target
+        public int fCost; // g + h
+        
 
         public bool open;
 
-        public void Set_fValue()
+        public void CalculatefCost()
         {
-            fValue = gValue + hValue;
+            fCost = gCost + hCost;
         }
 
     }
