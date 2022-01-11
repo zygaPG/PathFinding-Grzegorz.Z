@@ -99,6 +99,7 @@ public class Grid_Generator : MonoBehaviour
         List<int> new_Walls = WallGenerator(new int2(grid_x_size, grid_y_size));
         foreach (int wallPos in new_Walls)
         {
+            Debug.Log(wallPos.x + " " + wallPos.y);
             SetButtonCollor(wallPos, wallColor);
         }
         wallPositions_Encrypted = new_Walls.ToArray();
@@ -106,11 +107,14 @@ public class Grid_Generator : MonoBehaviour
     }
 
 
+
+
+
     public void ButtonClick(string buttonName)        //
     {
         if (start_Position.x == -1)
         {
-            start_Position = Decrypt_Button(buttonName);
+            start_Position = StrigToInt2(buttonName);
             SetButtonCollor(start_Position, startColor);
         }
         else
@@ -124,7 +128,7 @@ public class Grid_Generator : MonoBehaviour
                 SetButtonCollor(target_Position, new Color32(255, 255, 255, 255));
             }
 
-            target_Position = Decrypt_Button(buttonName);
+            target_Position = StrigToInt2(buttonName);
             SetButtonCollor(target_Position, targetColor);
 
             StartPathFinding();
@@ -133,7 +137,7 @@ public class Grid_Generator : MonoBehaviour
         }
     }
     
-    public int2 Decrypt_Button(string _name)    //decrypting button name string "3v15" to int2 {3,15}
+    public int2 StrigToInt2(string _name)    //split string "3v15" to int2 {3,15}
     {
         string[] splitArray =  _name.Split('v');
 
@@ -145,16 +149,16 @@ public class Grid_Generator : MonoBehaviour
     }
     
 
-    void SetButtonCollor(int2 position, Color32 colo)
+    void SetButtonCollor(int2 position, Color32 color)
     {
         //int quad_num = ((position.x) * grid_y_size) + position.y + 1;
-        int quad_num = position.x + position.y * grid_x_size;
-        arena.transform.GetChild(quad_num ).GetComponent<Image>().color = colo;
+        int quad_num = position.x * grid_y_size + position.y;
+        arena.transform.GetChild(quad_num ).GetComponent<Image>().color = color;
     }
 
-    void SetButtonCollor(int position, Color32 colo)
+    void SetButtonCollor(int position, Color32 color)
     {
-        arena.transform.GetChild(position).GetComponent<Image>().color = colo;
+        arena.transform.GetChild(position).GetComponent<Image>().color = color;
 
     }
 
@@ -209,17 +213,17 @@ public class Grid_Generator : MonoBehaviour
         {
             NativeArray<Quad> quadsArray = new NativeArray<Quad>(grid_x * grid_y, Allocator.Temp);
 
-            for (int i = 0; i < grid_x; i++)
+            for (int x = 0; x < grid_x; x++)
             {
-                for (int o = 0; o < grid_y; o++)
+                for (int y = 0; y < grid_y; y++)
                 {
                     Quad quad = new Quad();
-                    quad.x = i;
-                    quad.y = o;
-                    quad.id = Calculate_id(i, o);
+                    quad.x = x;
+                    quad.y = y;
+                    quad.id = Calculate_id(x, y);
 
                     quad.gValue = int.MaxValue;
-                    quad.hValue = Calculate_gValue(i, o);
+                    quad.hValue = Calculate_gValue(x, y);
                     quad.Set_fValue();
 
                     quad.open = true;
@@ -442,8 +446,8 @@ public class Grid_Generator : MonoBehaviour
         for(int i=0; i<= firstGen; i++)
         {
             int2 newWall = new int2(
-                UnityEngine.Random.Range(0, grid_size.x), 
-                UnityEngine.Random.Range(0, grid_size.y)    );
+                UnityEngine.Random.Range(0, grid_size.x-1), 
+                UnityEngine.Random.Range(0, grid_size.y-1)    );
 
             int new_Wall_Encrypted = newWall.x + newWall.y * grid_size.x;
 
@@ -488,7 +492,7 @@ public class Grid_Generator : MonoBehaviour
                         int2 new_Way = new int2(UnityEngine.Random.Range(-1, 1), UnityEngine.Random.Range(-1, 1));
                         currentWall += new_Way;
 
-                        if (currentWall.x < 0 && currentWall.x > grid_size.x && currentWall.y < 0 && currentWall.y > grid_size.y)
+                        if (currentWall.x <= 0 && currentWall.x >= grid_size.x && currentWall.y <= 0 && currentWall.y >= grid_size.y)
                         {
                             if (p > 0)
                                 p--;
